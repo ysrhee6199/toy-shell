@@ -5,8 +5,13 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <dirent.h>
+#include <pwd.h>
+#include <sys/stat.h>
 
 #define MAX_LEN_LINE    100
+#define LEN_HOSTNAME	30
+
 
 int main(void)
 {
@@ -18,8 +23,14 @@ int main(void)
     while (true) {
         char *s;
         int len;
-        
-        printf("MyShell $ ");
+        char hostname[LEN_HOSTNAME + 1];
+        memset(hostname, 0x00, sizeof(hostname));
+        printf("\x1b[31musername: %s\n", getpwuid(getuid())->pw_name);
+
+        gethostname(hostname, LEN_HOSTNAME);
+        printf("\x1b[31mhostname: %s\n", hostname);
+       
+       printf("\x1b[36mYongsShell $ ");
         s = fgets(command, MAX_LEN_LINE, stdin);
         if (s == NULL) {
             fprintf(stderr, "fgets failed\n");
@@ -33,7 +44,58 @@ int main(void)
         }
         
         printf("[%s]\n", command);
-      
+        if(strcmp(command,"exit") == 0){                                                 /* exit*/
+        	break;
+        }
+ 
+       
+        if(strcmp(command,"pwd")==0){
+	char buf[BUFSIZ];                                                                /* pwd */
+	
+	getcwd(buf,BUFSIZ);
+	printf("%s\n",buf);
+        }
+        if(strcmp(command,"mkdir")==0){                                                 /* mkdir */
+	char namef[] ="";
+	printf("만들 폴더 이름을 입렵하시오: ");
+	scanf("%s", namef);
+	
+	char strFolderPath[] = { "/mnt/c/Users/YSL/toyshell/" }; 
+	
+	strcat(strFolderPath,namef);
+	
+	int nResult = mkdir( strFolderPath,0755 );
+
+	if( nResult == 0 )
+	{
+		printf( "폴더 생성을 성공했습니다.\n" );
+	}
+	else if( nResult == -1 )
+	{
+		perror( "폴더 생성을 실패했습니다.\n" );
+	}
+        }
+        if(strcmp(command,"ls")==0){                                             /* ls */
+	char * cwd = (char *)malloc(sizeof(char) * 1024);
+        DIR * dir = NULL;
+        struct dirent * entry = NULL;
+        getcwd(cwd, 1024);
+        if( (dir = opendir(cwd)) == NULL)
+        {
+                printf("current directory error\n");
+                exit(1);
+        }
+        while( (entry = readdir(dir)) != NULL)
+        {
+                printf("%s\n", entry->d_name);
+        }
+        
+    
+        free(cwd);
+        closedir(dir);
+        return 0;
+        }
+
         pid = fork();
         if (pid < 0) {
             fprintf(stderr, "fork failed\n");
